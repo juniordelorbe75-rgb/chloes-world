@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: chloes-world-store
+    runtime: node
+    region: virginia
+    plan: 0.5c-512mb
+    buildCommand: node --check server.mjs
+    startCommand: npm start
+    healthCheckPath: /health
+    numInstances: 1
+    autoDeployTrigger: commit
+    disk:
+      name: chloes-store-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /var/data
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        generateValue: true
