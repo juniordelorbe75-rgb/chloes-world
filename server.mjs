@@ -22,7 +22,12 @@ export function openStore(dataDir){
     CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,csrf TEXT NOT NULL,expires INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS orders(id TEXT PRIMARY KEY,customer TEXT NOT NULL,phone TEXT NOT NULL,address TEXT NOT NULL,fulfillment TEXT NOT NULL,notes TEXT NOT NULL,items TEXT NOT NULL,subtotal INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'pendiente',created TEXT NOT NULL,request_key TEXT UNIQUE NOT NULL);
   `);
-  db.prepare('INSERT OR IGNORE INTO settings VALUES(1,?)').run(JSON.stringify({name:'Chloe’s World',whatsapp:'',delivery:'Envíos y pago a coordinar antes de confirmar el pedido.',contact:'',ordersEnabled:false}));
+  db.prepare('INSERT OR IGNORE INTO settings VALUES(1,?)').run(JSON.stringify({name:'La tienda de Chloe',whatsapp:'',delivery:'Envíos y pago a coordinar antes de confirmar el pedido.',contact:'',ordersEnabled:false}));
+  const savedSettings=JSON.parse(db.prepare('SELECT value FROM settings WHERE id=1').get().value);
+  if(['Chloe’s World', "Chloe's World"].includes(savedSettings.name)){
+    savedSettings.name='La tienda de Chloe';
+    db.prepare('UPDATE settings SET value=? WHERE id=1').run(JSON.stringify(savedSettings));
+  }
   return db;
 }
 export function expirePendingOrders(db,now=Date.now()){
@@ -110,7 +115,7 @@ export function createApp({dataDir=resolve(process.env.DATA_DIR||'./data'),passw
         if(path==='/api/admin/settings'&&req.method==='GET')return send(200,settings());
         if(path==='/api/admin/settings'&&req.method==='PUT'){
           const p=await body(),whatsapp=text(p.whatsapp,20).replace(/[\s+()-]/g,'');if(whatsapp&&!/^\d{10,15}$/.test(whatsapp))fail(400,'WhatsApp debe incluir el código de país, por ejemplo 1809…');
-          const value={name:text(p.name,80)||'Chloe’s World',whatsapp,delivery:text(p.delivery,1000),contact:text(p.contact,500),ordersEnabled:p.ordersEnabled===true};db.prepare('UPDATE settings SET value=? WHERE id=1').run(JSON.stringify(value));return send(200,value);
+          const value={name:text(p.name,80)||'La tienda de Chloe',whatsapp,delivery:text(p.delivery,1000),contact:text(p.contact,500),ordersEnabled:p.ordersEnabled===true};db.prepare('UPDATE settings SET value=? WHERE id=1').run(JSON.stringify(value));return send(200,value);
         }
         if(path==='/api/admin/orders'&&req.method==='GET')return send(200,db.prepare('SELECT * FROM orders ORDER BY created DESC LIMIT 500').all().map(o=>({...o,items:JSON.parse(o.items)})));
         const orderMatch=path.match(/^\/api\/admin\/orders\/([A-F0-9]{12})$/);
@@ -160,6 +165,6 @@ export function createApp({dataDir=resolve(process.env.DATA_DIR||'./data'),passw
   server.requestTimeout=30000;server.headersTimeout=15000;return {server,db};
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
-  const {server,db}=createApp();server.listen(Number(process.env.PORT||8011),process.env.RENDER?'0.0.0.0':'127.0.0.1',()=>console.log('Chloe’s World: servidor iniciado.'));
+  const {server,db}=createApp();server.listen(Number(process.env.PORT||8011),process.env.RENDER?'0.0.0.0':'127.0.0.1',()=>console.log('La tienda de Chloe: servidor iniciado.'));
   const stop=()=>server.close(()=>{db.close();process.exit(0)});process.on('SIGTERM',stop);process.on('SIGINT',stop);
 }
